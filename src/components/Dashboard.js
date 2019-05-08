@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { searchData } from '../config/api'
+import { searchData, DataFetch } from '../config/api'
 
 
 
@@ -7,53 +7,141 @@ class Dashboard extends Component {
     constructor() {
         super();
         this.state = {
-            Data: []
+            crimes: [],
+            forces: [],
+            crimeSearch: '',
+            forcesCrime: '',
+            crimesSearched: []
         }
     }
+    componentWillMount() {
+        this.forcesData()
+        this.crimeData()
+    }
 
-    async fetchData(e) {
-        // e.target.value === 'no' ? this.setState({Data: []}) : 
-        if (e.target.value === 'no') {
-            this.setState({ Data: [] })
-        } else {
-            this.setState({ loading: true })
+    async forcesData() {
+        this.setState({ loading: true })
+        try {
+            const result = await searchData('forces');
+            // console.log('fecthData 1st console' , result)
+            this.setState({
+                forces: result
+            })
+        } catch (e) {
+            // console.log('error ==>' + e)
+        } finally {
+            this.setState({ loading: false })
+        }
+    }
+    async crimeData() {
+        this.setState({ loading: true })
+        try {
+            const result = await searchData('crime-categories');
+            // console.log('fecthData 1st console' , result)
+            this.setState({
+                crimes: result
+            })
+        } catch (e) {
+            // console.log('error ==>' + e)
+        } finally {
+            this.setState({ loading: false })
+        }
+    }
+    crimes(e) {
+        this.setState({
+            crimeSearch: e.target.value
+        })
+    }
+    forces(e) {
+        this.setState({
+            forcesCrime: e.target.value
+        })
+    }
+    async searchCrimeData() {
+        // this.setState({ loading: true })
+        const { crimeSearch, forcesCrime } = this.state
+        if (crimeSearch !== '' && forcesCrime !== '') {
             try {
-                const result = await searchData(e.target.value);
-                // console.log('fecthData 1st console' , result)
+                const result = await DataFetch(crimeSearch, forcesCrime);
+                // console.log('final ===> ', result)
+                let rs = result.map((e, i) => {
+                    let obj = {
+                        Catogery: e.category,
+                        Date: e.month,
+                        OutCome: e.outcome_status.category
+                    }
+                    return obj
+                })
+                // console.log(rs)
                 this.setState({
-                    Data: result
+                    crimesSearched: rs
                 })
             } catch (e) {
-                // console.log('error ==>' + e)
+                console.log('error ==>' + e)
             } finally {
-                this.setState({ loading: false })
+                // this.setState({ loading: false })
             }
         }
     }
 
-
     render() {
-        const { Data } = this.state
+        const { forces, crimes, crimeSearch, forcesCrime, crimesSearched } = this.state
+        // console.log(forcesCrime)
+        // console.log(crimeSearch)
+        console.log(crimesSearched)
         return (
             <div>
-                <div>
-                    <h1>Dashboard</h1>
-                    <select defaultValue='no' onChange={(e) => this.fetchData(e)}>
-                        <option value='no' selected>Pleas Select 1 in list</option>
-                        <option value='crime-categories'>Crime Categories</option>
-                        <option value='forces'>Forces</option>
-                    </select>
-                </div>
-                <br />
-                <div>
-                    {Data.length ? <div>{Data.map((e, i) => {
+                <h1>Dashboard</h1>
+                <select onChange={(e) => this.forces(e)}>
+                    {forces.map((e, i) => {
+                        // console.log("ID ==>" + e.id, 'Name ==>' + e.name)
                         return (
-                            <div style={{ textAlign: 'left', paddingLeft: '30px' }} className="alert alert-primary" role="alert" key={i + 1}>{i + 1}) {e.name}</div>
+                            <option key={i} value={e.id}>{e.name}</option>
                         )
-                    })}</div> : <div>No Data</div>}
-                </div>
+                    })}
+                </select>
+                <br />
+                <select onChange={e => this.crimes(e)}>
+                    {crimes.map((e, i) => {
+                        // console.log("ID ==>" + e.url, 'Name ==>' + e.name)
+                        return (
+                            <option key={i} value={e.id}>{e.name}</option>
+                        )
+                    })}
+                </select>
+                <br />
+                <button onClick={() => this.searchCrimeData()}>
+                    Search
+                    </button>
+                <br />
+                <br />
+                <br />
 
-
+                <table style={{width: '100%' , border: '1px solid'}}>
+                    <thead>
+                        <tr>
+                            <th style={{border: '1px solid'}}>
+                                Catogery
+                            </th>
+                            <th style={{border: '1px solid'}}>
+                                Date
+                            </th>
+                            <th style={{border: '1px solid'}}>
+                                Crime
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {crimesSearched.length ? crimesSearched.map((e, i) => {
+                            return (<tr key={i}>
+                                <td style={{border: '1px solid'}}>{e.Catogery}</td>
+                                <td style={{border: '1px solid'}}>{e.Date}</td>
+                                <td style={{border: '1px solid'}}>{e.OutCome}</td>
+                            </tr>
+                            )
+                        }) : <tr><td colSpan='3' style={{textAlign: 'center', border: '1px solid'}}>No Data Search</td></tr>}
+                    </tbody>
+                </table>
             </div>
 
         )
